@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout';
+import { useRouter } from 'next/navigation';
 import {
     SidebarProvider,
     SidebarInset,
@@ -39,6 +40,8 @@ import {
 } from '@/components/ui/dialog';
 import { DashboardLayoutItem, DashboardTab, EnhancedDashboardConfig, DashboardTemplate } from '@/types/dashboard-enhanced';
 import { defaultTemplates } from '@/lib/dashboard-templates';
+import { saveDashboardConfig, setActiveDashboard } from '@/lib/dashboard-storage';
+import { toast } from 'sonner';
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -48,7 +51,7 @@ interface EnhancedDashboardBuilderProps {
     onExport?: (config: EnhancedDashboardConfig) => void;
 }
 
-// Widget Components
+// Widget Components (same as before)
 const ChartWidget: React.FC<{ item: DashboardLayoutItem; onRemove?: () => void; editable: boolean }> = ({
                                                                                                             item, onRemove, editable
                                                                                                         }) => (
@@ -122,7 +125,7 @@ const MetricWidget: React.FC<{ item: DashboardLayoutItem; onRemove?: () => void;
     </Card>
 );
 
-// Template Selection Dialog
+// Template Selection Dialog (same as before)
 const TemplateSelector: React.FC<{
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -164,7 +167,7 @@ const TemplateSelector: React.FC<{
     </Dialog>
 );
 
-// Widget Library Sidebar
+// Widget Library Sidebar (same as before)
 const WidgetLibrarySidebar: React.FC<{
     onAddWidget: (type: DashboardLayoutItem['componentType']) => void;
 }> = ({ onAddWidget }) => (
@@ -217,6 +220,7 @@ export const EnhancedDashboardBuilder: React.FC<EnhancedDashboardBuilderProps> =
                                                                                       onSave,
                                                                                       onExport
                                                                                   }) => {
+    const router = useRouter();
     const [config, setConfig] = useState<EnhancedDashboardConfig>(
         initialConfig || {
             id: '',
@@ -348,13 +352,31 @@ export const EnhancedDashboardBuilder: React.FC<EnhancedDashboardBuilderProps> =
         }
     }, [isPreviewMode, handleRemoveWidget]);
 
+    // Save and navigate to dashboard
     const handleSave = useCallback(() => {
         const configToSave = {
             ...config,
             id: config.id || `dashboard-${Date.now()}`,
         };
-        onSave?.(configToSave);
-    }, [config, onSave]);
+
+        try {
+            // Save to localStorage
+            saveDashboardConfig(configToSave);
+            setActiveDashboard(configToSave.id);
+
+            // Call external onSave if provided
+            onSave?.(configToSave);
+
+            // Show success toast
+            toast.success('Dashboard saved successfully!');
+
+            // Navigate to dashboard page
+            router.push('/dashboard');
+        } catch (error) {
+            console.error('Failed to save dashboard:', error);
+            toast.error('Failed to save dashboard. Please try again.');
+        }
+    }, [config, onSave, router]);
 
     return (
         <SidebarProvider>
