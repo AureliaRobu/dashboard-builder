@@ -52,78 +52,87 @@ interface EnhancedDashboardBuilderProps {
 }
 
 // Widget Components (same as before)
-const ChartWidget: React.FC<{ item: DashboardLayoutItem; onRemove?: () => void; editable: boolean }> = ({
-                                                                                                            item, onRemove, editable
-                                                                                                        }) => (
-    <Card className="h-full">
+const WidgetWrapper: React.FC<{
+    children: React.ReactNode;
+    onRemove?: () => void;
+    editable: boolean;
+}> = ({ children, onRemove, editable }) => (
+    <div className="h-full relative group/widget">
+        {children}
         {editable && onRemove && (
             <Button
                 variant="destructive"
                 size="icon"
-                className="absolute top-2 right-2 z-10 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={onRemove}
+                className="absolute top-1 right-1 z-20 h-5 w-5 opacity-0 group-hover/widget:opacity-100 transition-all duration-200 hover:opacity-100 hover:scale-110"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation(); // Prevents event bubbling
+                    onRemove();
+                }}
+                onMouseDown={(e) => {
+                    e.stopPropagation(); // Critical: prevents drag from starting
+                }}
+                onTouchStart={(e) => {
+                    e.stopPropagation(); // For mobile support
+                }}
+                data-no-drag="true" // Extra safety selector
             >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
             </Button>
         )}
-        <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Chart Widget</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center">
-            <BarChart3 className="h-8 w-8 text-muted-foreground" />
-            <span className="ml-2 text-sm text-muted-foreground">Chart Placeholder</span>
-        </CardContent>
-    </Card>
+    </div>
+);
+
+// Updated widget components using the wrapper (cleaner approach)
+const ChartWidget: React.FC<{ item: DashboardLayoutItem; onRemove?: () => void; editable: boolean }> = ({
+                                                                                                              item, onRemove, editable
+                                                                                                          }) => (
+    <WidgetWrapper onRemove={onRemove} editable={editable}>
+        <Card className="h-full">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Chart Widget</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center">
+                <BarChart3 className="h-8 w-8 text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Chart Placeholder</span>
+            </CardContent>
+        </Card>
+    </WidgetWrapper>
 );
 
 const TableWidget: React.FC<{ item: DashboardLayoutItem; onRemove?: () => void; editable: boolean }> = ({
-                                                                                                            item, onRemove, editable
-                                                                                                        }) => (
-    <Card className="h-full">
-        {editable && onRemove && (
-            <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 z-10 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={onRemove}
-            >
-                <X className="h-4 w-4" />
-            </Button>
-        )}
-        <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Table Widget</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center">
-            <Table className="h-8 w-8 text-muted-foreground" />
-            <span className="ml-2 text-sm text-muted-foreground">Table Placeholder</span>
-        </CardContent>
-    </Card>
+                                                                                                              item, onRemove, editable
+                                                                                                          }) => (
+    <WidgetWrapper onRemove={onRemove} editable={editable}>
+        <Card className="h-full">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Table Widget</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center">
+                <Table className="h-8 w-8 text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Table Placeholder</span>
+            </CardContent>
+        </Card>
+    </WidgetWrapper>
 );
 
 const MetricWidget: React.FC<{ item: DashboardLayoutItem; onRemove?: () => void; editable: boolean }> = ({
-                                                                                                             item, onRemove, editable
-                                                                                                         }) => (
-    <Card className="h-full">
-        {editable && onRemove && (
-            <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2 z-10 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={onRemove}
-            >
-                <X className="h-4 w-4" />
-            </Button>
-        )}
-        <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Metric</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center justify-center">
-            <Target className="h-8 w-8 text-primary mb-2" />
-            <div className="text-2xl font-bold">42</div>
-            <div className="text-sm text-muted-foreground">KPI Value</div>
-        </CardContent>
-    </Card>
+                                                                                                               item, onRemove, editable
+                                                                                                           }) => (
+    <WidgetWrapper onRemove={onRemove} editable={editable}>
+        <Card className="h-full">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Metric</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center">
+                <Target className="h-8 w-8 text-primary mb-2" />
+                <div className="text-2xl font-bold">42</div>
+                <div className="text-sm text-muted-foreground">KPI Value</div>
+            </CardContent>
+        </Card>
+    </WidgetWrapper>
 );
+
 
 // Template Selection Dialog (same as before)
 const TemplateSelector: React.FC<{
@@ -294,15 +303,21 @@ export const EnhancedDashboardBuilder: React.FC<EnhancedDashboardBuilderProps> =
 
     // Remove widget
     const handleRemoveWidget = useCallback((widgetId: string) => {
-        setConfig(prev => ({
-            ...prev,
-            tabs: prev.tabs.map(tab =>
-                tab.id === activeTabId
-                    ? { ...tab, layout: tab.layout.filter(item => item.i !== widgetId) }
-                    : tab
-            ),
-            updatedAt: new Date().toISOString(),
-        }));
+
+        setConfig(prev => {
+            const updatedConfig = {
+                ...prev,
+                tabs: prev.tabs.map(tab => {
+                    if (tab.id === activeTabId) {
+                        const filteredLayout = tab.layout.filter(item => item.i !== widgetId);
+                        return { ...tab, layout: filteredLayout };
+                    }
+                    return tab;
+                }),
+                updatedAt: new Date().toISOString(),
+            };
+            return updatedConfig;
+        });
     }, [activeTabId]);
 
     // Add new tab
@@ -334,9 +349,13 @@ export const EnhancedDashboardBuilder: React.FC<EnhancedDashboardBuilderProps> =
 
     // Render widget based on type
     const renderWidget = useCallback((item: DashboardLayoutItem) => {
+        const handleRemoveClick = () => {
+            handleRemoveWidget(item.i);
+        };
+
         const commonProps = {
             item,
-            onRemove: () => handleRemoveWidget(item.i),
+            onRemove: !isPreviewMode ? handleRemoveClick : undefined,
             editable: !isPreviewMode,
         };
 
@@ -351,6 +370,7 @@ export const EnhancedDashboardBuilder: React.FC<EnhancedDashboardBuilderProps> =
                 return <ChartWidget {...commonProps} />;
         }
     }, [isPreviewMode, handleRemoveWidget]);
+
 
     // Save and navigate to dashboard
     const handleSave = useCallback(() => {
@@ -482,6 +502,7 @@ export const EnhancedDashboardBuilder: React.FC<EnhancedDashboardBuilderProps> =
                                         isResizable={!isPreviewMode}
                                         margin={[16, 16]}
                                         containerPadding={[0, 0]}
+                                        draggableCancel="button, .react-grid-no-drag, [data-no-drag='true']"
                                     >
                                         {tab.layout.map((item) => (
                                             <div key={item.i} className="group">
