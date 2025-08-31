@@ -36,3 +36,12 @@ export interface EnhancedDashboardConfig {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface GridLayoutItem {
+    i: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
